@@ -43,7 +43,10 @@ pipeline {
         }
       }
       agent {
-        label params.agent
+        docker {
+          image params.image
+          label params.agent
+        }
       }
       steps {
         // sh 'cd dist && zip -r ../asterics-rest.zip *'
