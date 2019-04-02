@@ -1,0 +1,37 @@
+{
+  "name": "@asterics/rest",
+  "version": "0.0.1-rc1",
+  "description": "AsTeRICS REST Client",
+  "main": "dist/index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "build": "NODE_ENV=production webpack",
+    "dev": "NODE_ENV=development webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sabicalija/rest.git"
+  },
+  "keywords": [
+    "AsTeRICS",
+    "REST",
+    "ARE",
+    "Accessibility"
+  ],
+  "author": "Alija Sabic <sabic@technikum-wien.at>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/sabicalija/rest/issues"
+  },
+  "homepage": "https://github.com/sabicalija/rest#readme",
+  "devDependencies": {
+    "@babel/core": "^7.4.0",
+    "@babel/preset-env": "^7.4.2",
+    "babel-loader": "^8.0.5",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0"
+  }
+}

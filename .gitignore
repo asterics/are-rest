@@ -1,0 +1,5 @@
+# Ignore
+dist/
+node_modules/
+
+# Allow
