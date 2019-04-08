@@ -1,8 +1,9 @@
 const { resolve } = require("path");
 const webpack = require("webpack");
-require("@babel/register");
+// require("@babel/register");
 
 module.exports = {
+  target: "node",
   entry: "./src/index.js",
   output: {
     path: resolve(__dirname, "dist"),

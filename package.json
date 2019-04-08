@@ -35,5 +35,9 @@
     "babel-loader": "^8.0.5",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.3.0"
+  },
+  "dependencies": {
+    "jquery": "^3.3.1",
+    "jsdom": "^14.0.0"
   }
 }

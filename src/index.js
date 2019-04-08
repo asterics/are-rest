@@ -1,3 +1,5 @@
+import $ from "jquery";
+
 //The base URI that ARE runs at
 export var _baseURI;
 
