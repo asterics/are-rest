@@ -1,60 +1,54 @@
 const { resolve } = require("path");
-const webpack = require("webpack");
-// require("@babel/register");
+// const webpack = require("webpack");
 
 module.exports = {
-  target: "node",
-  entry: "./src/index.js",
+  // target: "node",
+  entry: "./src/test.js",
   output: {
     path: resolve(__dirname, "dist"),
-    filename: "index.js",
-    library: "rest",
-    libraryTarget: "umd",
-    globalObject: `typeof self !== 'undefined' ? self : this`
+    filename: "new.js"
+    // library: "rest",
+    // libraryTarget: "umd",
+    // globalObject: `typeof self !== 'undefined' ? self : this`
   },
   module: {
     rules: [
-      {
-        test: require.resolve("jquery"),
-        use: [
-          {
-            loader: "expose-loader",
-            options: "$"
-          }
-        ]
-      },
       {
         test: /\.js$/,
         exclude: /(node_modules)/,
         use: {
           loader: "babel-loader",
           options: {
-            presets: ["@babel/preset-env"]
-            // plugins: ["add-module-exports"]
+            presets: [
+              [
+                "@babel/env",
+                {
+                  targets: {
+                    browsers: ["last 2 versions"]
+                  },
+                  debug: true
+                }
+              ]
+            ]
           }
         }
       }
     ]
   },
-  externals: {
-    jquery: {
-      commonjs: "jquery",
-      commonjs2: "jquery",
-      amd: "jquery",
-      root: "$"
-    }
-  },
+  // externals: {
+  //   jquery: {
+  //     commonjs: "jquery",
+  //     commonjs2: "jquery",
+  //     amd: "jquery",
+  //     root: "$"
+  //   }
+  // },
   stats: {
     colors: true
   },
   devtool: "source-map",
-  mode: process.env.NODE_ENV,
-  optimization: {
-    usedExports: true
-  },
-  plugins: [
-    new webpack.ProvidePlugin({
-      $: "jquery"
-    })
-  ]
+  mode: process.env.NODE_ENV
+  // optimization: {
+  //   usedExports: true
+  // }
 };

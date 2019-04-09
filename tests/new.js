@@ -1,19 +1,32 @@
-// const $ = require("jquery");
-// require("jquery");
-const { JSDOM } = require("jsdom");
-const dom = new JSDOM("");
-const $ = require("jquery")(dom.window);
+const { awesome } = require("../dist");
 
-const { setBaseURI, downloadDeployedModel } = require("../dist");
+awesome();
 
-setBaseURI("localhost:8081/rest");
-downloadDeployedModel(
-  function(data, status) {
-    console.log(data);
-    console.log(status);
-  },
-  function(e, r) {
-    console.log(e);
-    console.log(r);
-  }
-);
+// require("@babel/register");
+
+// import axios from "axios";
+// const axios = require("axios");
+
+// axios("http://localhost:8081/rest/runtime/model/state", {
+//   // crossDomain: true
+// })
+//   .then(res => {
+//     console.log(res);
+//   })
+//   .catch(error => {
+//     console.log(error);
+//   });
+
+// const { setBaseURI, downloadDeployedModel } = require("../dist");
+
+// setBaseURI("localhost:8081/rest");
+// downloadDeployedModel(
+//   function(data, status) {
+//     console.log(data);
+//     console.log(status);
+//   },
+//   function(e, r) {
+//     console.log(e);
+//     console.log(r);
+//   }
+// );
