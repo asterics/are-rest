@@ -1,15 +1,19 @@
 const { resolve } = require("path");
-// const webpack = require("webpack");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
-  // target: "node",
-  entry: "./src/test.js",
+  target: "node",
+  // node: {
+  //   http: true,
+  //   https: "empty"
+  // },
+  entry: "./src/index.js",
   output: {
     path: resolve(__dirname, "dist"),
-    filename: "new.js"
-    // library: "rest",
-    // libraryTarget: "umd",
-    // globalObject: `typeof self !== 'undefined' ? self : this`
+    filename: "index.js",
+    library: "rest",
+    libraryTarget: "umd",
+    globalObject: `typeof self !== 'undefined' ? self : this`
   },
   module: {
     rules: [
@@ -24,7 +28,7 @@ module.exports = {
                 "@babel/env",
                 {
                   targets: {
-                    browsers: ["last 2 versions"]
+                    browsers: ["last 4 versions"]
                   },
                   debug: true
                 }
@@ -36,19 +40,15 @@ module.exports = {
     ]
   },
   // externals: {
-  //   jquery: {
-  //     commonjs: "jquery",
-  //     commonjs2: "jquery",
-  //     amd: "jquery",
-  //     root: "$"
-  //   }
+  //   axios: "axios"
   // },
   stats: {
     colors: true
   },
   devtool: "source-map",
-  mode: process.env.NODE_ENV
-  // optimization: {
-  //   usedExports: true
-  // }
+  mode: process.env.NODE_ENV,
+  optimization: {
+    usedExports: true,
+    minimizer: [new TerserPlugin({ parallel: true, sourceMap: true })]
+  }
 };

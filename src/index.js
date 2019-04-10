@@ -1,14 +1,31 @@
-// import $ from "jquery";
 import axios from "axios";
+import EventSource from "eventsource";
+import Map from "./JSmap";
+
+let axiosInstance = axios.create({
+  baseURL: "http://localhost:8081/rest/"
+});
+
+const axiosSuccessCallback = cb => {
+  return response => {
+    cb(response.data, response.statusText);
+  };
+};
+
+const axiosErrorCallback = cb => {
+  return error => {
+    cb(error, error.response.statusText);
+  };
+};
 
 //The base URI that ARE runs at
-export var _baseURI;
+let _baseURI;
 
 //A map holding the opened connection with ARE for SSE
-export var _eventSourceMap = new Map();
+let _eventSourceMap = new Map();
 
 //delimiter used for encoding
-export var delimiter = "-";
+const delimiter = "-";
 
 //enumeration for server event types
 export var ServerEventTypes = {
@@ -30,43 +47,39 @@ export var PortDatatype = {
   STRING: "string"
 };
 
-export function awesome() {
-  axios("http://localhost:8081/rest/runtime/model/state", {
-    // crossDomain: true
-  })
-    .then(res => {
-      console.log(res);
-    })
-    .catch(error => {
-      console.log(error);
-    });
+//set the base uri (usually where ARE runs at)
+export function setBaseURI(uri) {
+  _baseURI = uri;
+  axiosInstance = axios.create({ baseURL: uri });
 }
 
-// //set the base uri (usually where ARE runs at)
-// export function setBaseURI(uri) {
-//   _baseURI = uri;
-// }
+//encodes PathParametes
+export function encodeParam(text) {
+  let encoded = "";
+  for (let i = 0; i < text.length; i++) {
+    encoded += text.charCodeAt(i) + delimiter;
+  }
 
-// //encodes PathParametes
-// export function encodeParam(text) {
-//   encoded = "";
-//   for (i = 0; i < text.length; i++) {
-//     encoded += text.charCodeAt(i) + delimiter;
-//   }
+  return encoded;
+}
 
-//   return encoded;
-// }
+//replaces all occurrences of a 'oldString' with 'newString' in 'text'
+export function replaceAll(text, oldString, newString) {
+  return text.split(oldString).join(newString);
+}
 
-// //replaces all occurrences of a 'oldString' with 'newString' in 'text'
-// export function replaceAll(text, oldString, newString) {
-//   return text.split(oldString).join(newString);
-// }
+/**********************
+ *	Runtime resources
+ **********************/
 
-// /**********************
-//  *	Runtime resources
-//  **********************/
+export function downloadDeployedModel(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
-// export function downloadDeployedModel(successCallback, errorCallback) {
+// function downloadDeployedModel(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
 //     url: _baseURI + "runtime/model",
@@ -81,7 +94,18 @@ export function awesome() {
 //   });
 // }
 
-// export function uploadModel(successCallback, errorCallback, modelInXML) {
+export function uploadModel(successCallback, errorCallback, modelInXML = "") {
+  if (modelInXML == "") return;
+
+  axiosInstance
+    .put("runtime/model", modelInXML, {
+      headers: { "Content-Type": "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+// function uploadModel(successCallback, errorCallback, modelInXML) {
 //   if (modelInXML == "") return;
 
 //   $.ajax({
@@ -100,6 +124,15 @@ export function awesome() {
 //   });
 // }
 
+export function autorun(successCallback, errorCallback, filepath = "") {
+  if (filepath == "") return;
+
+  axiosInstance
+    .put("runtime/model/autorun/" + encodeParam(filepath))
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function autorun(successCallback, errorCallback, filepath) {
 //   if (filepath == "") return;
 
@@ -117,6 +150,13 @@ export function awesome() {
 //   });
 // }
 
+export function pauseModel(successCallback, errorCallback) {
+  axiosInstance
+    .put("runtime/model/state/pause")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function pauseModel(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "PUT",
@@ -131,6 +171,13 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function startModel(successCallback, errorCallback) {
+  axiosInstance
+    .put("runtime/model/state/start")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function startModel(successCallback, errorCallback) {
 //   $.ajax({
@@ -147,6 +194,13 @@ export function awesome() {
 //   });
 // }
 
+export function stopModel(successCallback, errorCallback) {
+  axiosInstance
+    .put("runtime/model/state/stop")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function stopModel(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "PUT",
@@ -162,6 +216,13 @@ export function awesome() {
 //   });
 // }
 
+export function getModelState(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model/state")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getModelState(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
@@ -176,6 +237,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function deployModelFromFile(successCallback, errorCallback, filepath = "") {
+  if (filepath == "") return;
+
+  axiosInstance
+    .put("runtime/model/" + encodeParam(filepath))
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function deployModelFromFile(successCallback, errorCallback, filepath) {
 //   if (filepath == "") return;
@@ -194,6 +264,13 @@ export function awesome() {
 //   });
 // }
 
+export function getRuntimeComponentIds(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model/components/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getRuntimeComponentIds(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
@@ -209,6 +286,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getRuntimeComponentPropertyKeys(successCallback, errorCallback, componentId = "") {
+  if (componentId == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId))
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getRuntimeComponentPropertyKeys(successCallback, errorCallback, componentId) {
 //   if (componentId == "") return;
@@ -228,6 +314,15 @@ export function awesome() {
 //   });
 // }
 
+export function getRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "") {
+  if (componentId == "" || componentKey == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey))
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getRuntimeComponentProperty(successCallback, errorCallback, componentId, componentKey) {
 //   if (componentId == "" || componentKey == "") return;
 
@@ -244,6 +339,17 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap = "") {
+  if (propertyMap == "") return;
+
+  axiosInstance
+    .put("runtime/model/components/properties", propertyMap, {
+      headers: { "Content-Type": "text/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap) {
 //   if (propertyMap == "") return;
@@ -264,6 +370,17 @@ export function awesome() {
 //   });
 // }
 
+export function setRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "", componentValue = "") {
+  if (componentId == "" || componentKey == "" || componentValue == "") return;
+
+  axiosInstance
+    .put("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey), componentValue, {
+      headers: { "Content-Type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function setRuntimeComponentProperty(successCallback, errorCallback, componentId, componentKey, componentValue) {
 //   if (componentId == "" || componentKey == "" || componentValue == "") return;
 
@@ -283,6 +400,13 @@ export function awesome() {
 //   });
 // }
 
+export function getEventChannelsIds(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model/channels/event/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getEventChannelsIds(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
@@ -298,6 +422,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getEventChannelSource(successCallback, errorCallback, channelId = "") {
+  if (channelId == "") return;
+
+  axiosInstance
+    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/source")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getEventChannelSource(successCallback, errorCallback, channelId) {
 //   if (channelId == "") return;
@@ -317,6 +450,15 @@ export function awesome() {
 //   });
 // }
 
+export function getEventChannelTarget(successCallback, errorCallback, channelId = "") {
+  if (channelId == "") return;
+
+  axiosInstance
+    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/target")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getEventChannelTarget(successCallback, errorCallback, channelId) {
 //   if (channelId == "") return;
 
@@ -334,6 +476,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getComponentEventChannelsIds(successCallback, errorCallback, componentId = "") {
+  if (componentId == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/event/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getComponentEventChannelsIds(successCallback, errorCallback, componentId) {
 //   if (componentId == "") return;
@@ -353,6 +504,13 @@ export function awesome() {
 //   });
 // }
 
+export function getDataChannelsIds(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model/channels/data/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getDataChannelsIds(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
@@ -368,6 +526,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getDataChannelSource(successCallback, errorCallback, channelId = "") {
+  if (channelId == "") return;
+
+  axiosInstance
+    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getDataChannelSource(successCallback, errorCallback, channelId) {
 //   if (channelId == "") return;
@@ -387,6 +554,15 @@ export function awesome() {
 //   });
 // }
 
+export function getDataChannelTarget(successCallback, errorCallback, channelId = "") {
+  if (channelId == "") return;
+
+  axiosInstance
+    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getDataChannelTarget(successCallback, errorCallback, channelId) {
 //   if (channelId == "") return;
 
@@ -404,6 +580,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getComponentDataChannelsIds(successCallback, errorCallback, componentId = "") {
+  if (componentId == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/data/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getComponentDataChannelsIds(successCallback, errorCallback, componentId) {
 //   if (componentId == "") return;
@@ -423,6 +608,15 @@ export function awesome() {
 //   });
 // }
 
+export function getComponentInputPortIds(successCallback, errorCallback, componentId = "") {
+  if (componentId == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/input/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getComponentInputPortIds(successCallback, errorCallback, componentId) {
 //   if (componentId == "") return;
 
@@ -440,6 +634,15 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getComponentOutputPortIds(successCallback, errorCallback, componentId = "") {
+  if (componentId == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/output/ids")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getComponentOutputPortIds(successCallback, errorCallback, componentId) {
 //   if (componentId == "") return;
@@ -459,6 +662,15 @@ export function awesome() {
 //   });
 // }
 
+export function getPortDatatype(successCallback, errorCallback, componentId = "", portId = "") {
+  if (componentId == "" || portId == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/datatype")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getPortDatatype(successCallback, errorCallback, componentId, portId) {
 //   if (componentId == "") return;
 
@@ -477,9 +689,18 @@ export function awesome() {
 //   });
 // }
 
-// /*************************************
-//  *	Storage/ARE-repository resources
-//  *************************************/
+/*************************************
+ *	Storage/ARE-repository resources
+ *************************************/
+
+export function downloadModelFromFile(successCallback, errorCallback, filepath = "") {
+  if (filepath == "") return;
+
+  axiosInstance
+    .get("storage/models/" + encodeParam(filepath))
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function downloadModelFromFile(successCallback, errorCallback, filepath) {
 //   if (filepath == "") return;
@@ -497,6 +718,17 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function storeModel(successCallback, errorCallback, filepath = "", modelInXML = "") {
+  if (filepath == "" || modelInXML == "") return;
+
+  axiosInstance
+    .post("storage/models/" + encodeParam(filepath), modelInXML, {
+      headers: { "Content-Type": "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function storeModel(successCallback, errorCallback, filepath, modelInXML) {
 //   if (filepath == "" || modelInXML == "") return;
@@ -517,6 +749,15 @@ export function awesome() {
 //   });
 // }
 
+export function deleteModelFromFile(successCallback, errorCallback, filepath = "") {
+  if (filepath == "") return;
+
+  axiosInstance
+    .delete("storage/models/" + encodeParam(filepath))
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function deleteModelFromFile(successCallback, errorCallback, filepath) {
 //   if (filepath == "") return;
 
@@ -534,6 +775,13 @@ export function awesome() {
 //   });
 // }
 
+export function listStoredModels(successCallback, errorCallback) {
+  axiosInstance
+    .get("storage/models/names")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function listStoredModels(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
@@ -550,6 +798,13 @@ export function awesome() {
 //   });
 // }
 
+export function getComponentDescriptorsAsXml(successCallback, errorCallback) {
+  axiosInstance
+    .get("storage/components/descriptors/xml")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
 // export function getComponentDescriptorsAsXml(successCallback, errorCallback) {
 //   $.ajax({
 //     type: "GET",
@@ -564,6 +819,13 @@ export function awesome() {
 //     }
 //   });
 // }
+
+export function getComponentDescriptorsAsJSON(successCallback, errorCallback) {
+  axiosInstance
+    .get("storage/components/descriptors/json")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getComponentDescriptorsAsJSON(successCallback, errorCallback) {
 //   $.ajax({
@@ -581,9 +843,16 @@ export function awesome() {
 //   });
 // }
 
-// /**********************
-//  *	Other Functions
-//  **********************/
+/**********************
+ *	Other Functions
+ **********************/
+
+export function getRestFunctions(successCallback, errorCallback) {
+  axiosInstance
+    .get("restfunctions")
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
 
 // export function getRestFunctions(successCallback, errorCallback) {
 //   $.ajax({
@@ -601,9 +870,79 @@ export function awesome() {
 //   });
 // }
 
-// /**********************************
-//  *	Subscription to SSE events
-//  **********************************/
+/**********************************
+ *	Subscription to SSE events
+ **********************************/
+
+export function subscribe(successCallback, errorCallback, eventType, channelId) {
+  // Browser does not support SSE
+  if (typeof EventSource === "undefined") {
+    alert("SSE not supported by browser");
+    return;
+  }
+
+  var eventSource = _eventSourceMap.get(eventType);
+  if (eventSource != null) {
+    eventSource.close();
+  }
+
+  let resource;
+
+  switch (eventType) {
+    case ServerEventTypes.MODEL_CHANGED:
+      resource = "runtime/deployment/listener";
+      break;
+    case ServerEventTypes.MODEL_STATE_CHANGED:
+      resource = "runtime/model/state/listener";
+      break;
+    case ServerEventTypes.EVENT_CHANNEL_TRANSMISSION:
+      resource = "runtime/model/channels/event/listener";
+      break;
+    case ServerEventTypes.DATA_CHANNEL_TRANSMISSION:
+      resource = "runtime/model/channels/data/" + encodeParam(channelId) + "/listener";
+      break;
+    case ServerEventTypes.PROPERTY_CHANGED:
+      resource = "runtime/model/components/properties/listener";
+      break;
+    default:
+      console.error("ERROR: Unknown event type given as a parameter '" + eventType + "'");
+      return;
+  }
+
+  eventSource = new EventSource(_baseURI + resource); // Connecting to SSE service
+  _eventSourceMap.add(eventType, eventSource);
+
+  //adding listener for specific events
+  eventSource.addEventListener(
+    "event",
+    function(e) {
+      successCallback(e.data, 200);
+    },
+    false
+  );
+
+  // After SSE handshake constructed
+  eventSource.onopen = function(e) {
+    console.log("Waiting message...");
+  };
+
+  // Error handler
+  eventSource.onerror = function(e) {
+    switch (e.target.readyState) {
+      case EventSource.CONNECTING:
+        console.log(400, "reconnecting");
+        errorCallback(400, "reconnecting");
+        break;
+      case EventSource.CLOSED:
+        console.log(400, "connectionLost");
+        errorCallback(400, "connectionLost");
+        break;
+      default:
+        errorCallback(400, "someErrorOccurred");
+        console.log("Error occured");
+    }
+  };
+}
 
 // export function subscribe(successCallback, errorCallback, eventType, channelId) {
 //   // Browser does not support SSE
@@ -673,9 +1012,24 @@ export function awesome() {
 //   };
 // }
 
+export function unsubscribe(eventType) {
+  closeEventSource(eventType);
+}
+
 // export function unsubscribe(eventType, channelId) {
 //   closeEventSource(eventType);
 // }
+
+export function closeEventSource(eventType) {
+  let eventSource = _eventSourceMap.remove(eventType);
+
+  if (eventSource == null) {
+    return false;
+  } else {
+    eventSource.close();
+    return true;
+  }
+}
 
 // export function closeEventSource(eventType) {
 //   var eventSource = _eventSourceMap.remove(eventType);
