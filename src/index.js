@@ -14,13 +14,13 @@ const axiosSuccessCallback = cb => {
 
 const axiosErrorCallback = cb => {
   return error => {
-    cb(error, error.response.statusText);
+    if (error.response !== undefined) {
+      cb(error, error.response.statusText);
+    } else {
+      cb(error, error.message);
+    }
   };
 };
-
-//The base URI that ARE runs at
-let _baseURI;
-
 //A map holding the opened connection with ARE for SSE
 let _eventSourceMap = new Map();
 
@@ -49,7 +49,6 @@ export var PortDatatype = {
 
 //set the base uri (usually where ARE runs at)
 export function setBaseURI(uri) {
-  _baseURI = uri;
   axiosInstance = axios.create({ baseURL: uri });
 }
 
@@ -166,7 +165,7 @@ export function setRuntimeComponentProperties(successCallback, errorCallback, pr
 
   axiosInstance
     .put("runtime/model/components/properties", propertyMap, {
-      headers: { "Content-Type": "text/json" }
+      headers: { "Content-Type": "application/json" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
@@ -298,6 +297,37 @@ export function storeModel(successCallback, errorCallback, filepath = "", modelI
     .post("storage/models/" + encodeParam(filepath), modelInXML, {
       headers: { "Content-Type": "text/xml" }
     })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function storeData(successCallback, errorCallback, filepath = "", data = "") {
+  if (filepath == "" || data == "") return;
+
+  axiosInstance
+    .post("storage/data/" + encodeParam(filepath), data, {
+      headers: { "Content-Type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function storeWebappData(successCallback, errorCallback, webappId = "", filepath = "", data = "") {
+  if (webappId == "" || filepath == "" || data == "") return;
+
+  axiosInstance
+    .post("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath), data, {
+      headers: { "Content-Type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function getWebappData(successCallback, errorCallback, webappId = "", filepath = "") {
+  if (webappId == "" || filepath == "") return;
+
+  axiosInstance
+    .get("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath))
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
