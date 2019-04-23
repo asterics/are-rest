@@ -78,43 +78,46 @@ export function downloadDeployedModel(successCallback, errorCallback) {
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function uploadModel(successCallback, errorCallback, modelInXML = "") {
+export function uploadModel(successCallback, errorCallback, modelInXML = "", put = false) {
   if (modelInXML == "") return;
 
   axiosInstance
-    .put("runtime/model", modelInXML, {
+    .request({
+      url: "runtime/model",
+      method: put ? "put" : "post",
+      data: modelInXML,
       headers: { "Content-Type": "text/xml" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function autorun(successCallback, errorCallback, filepath = "") {
+export function autorun(successCallback, errorCallback, filepath = "", put = false) {
   if (filepath == "") return;
 
   axiosInstance
-    .put("runtime/model/autorun/" + encodeParam(filepath))
+    .request({ url: "runtime/model/autorun/" + encodeParam(filepath), method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function pauseModel(successCallback, errorCallback) {
+export function pauseModel(successCallback, errorCallback, put = false) {
   axiosInstance
-    .put("runtime/model/state/pause")
+    .request({ url: "runtime/model/state/pause", method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function startModel(successCallback, errorCallback) {
+export function startModel(successCallback, errorCallback, put = false) {
   axiosInstance
-    .put("runtime/model/state/start")
+    .request({ url: "runtime/model/state/start", method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function stopModel(successCallback, errorCallback) {
+export function stopModel(successCallback, errorCallback, put = false) {
   axiosInstance
-    .put("runtime/model/state/stop")
+    .request({ url: "runtime/model/state/stop", method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -126,11 +129,11 @@ export function getModelState(successCallback, errorCallback) {
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function deployModelFromFile(successCallback, errorCallback, filepath = "") {
+export function deployModelFromFile(successCallback, errorCallback, filepath = "", put = false) {
   if (filepath == "") return;
 
   axiosInstance
-    .put("runtime/model/" + encodeParam(filepath))
+    .request({ url: "runtime/model/" + encodeParam(filepath), method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -151,20 +154,26 @@ export function getRuntimeComponentPropertyKeys(successCallback, errorCallback, 
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "") {
+export function getRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "", put = false) {
   if (componentId == "" || componentKey == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey))
+    .request({
+      url: "runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey),
+      method: put ? "put" : "post"
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap = "") {
+export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap = "", put = false) {
   if (propertyMap == "") return;
 
   axiosInstance
-    .put("runtime/model/components/properties", propertyMap, {
+    .request({
+      url: "runtime/model/components/properties",
+      method: put ? "put" : "post",
+      data: propertyMap,
       headers: { "Content-Type": "application/json" }
     })
     .then(axiosSuccessCallback(successCallback))
