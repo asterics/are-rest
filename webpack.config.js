@@ -64,7 +64,7 @@ const frontend = {
   output: {
     path: resolve(__dirname, "dist"),
     filename: "index.js",
-    library: "@asterics/rest",
+    library: "astericsREST",
     libraryTarget: "umd"
   },
   module: {

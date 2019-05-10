@@ -2,8 +2,11 @@ import axios from "axios";
 import EventSource from "eventsource";
 import Map from "./JSmap";
 
+const defaultBase = "http://localhost:8081/rest/";
+
 let axiosInstance = axios.create({
-  baseURL: "http://localhost:8081/rest/"
+  baseURL: defaultBase,
+  headers: { "content-type": "text/plain" }
 });
 
 const axiosSuccessCallback = cb => {
@@ -21,6 +24,7 @@ const axiosErrorCallback = cb => {
     }
   };
 };
+export let _baseURI = defaultBase;
 //A map holding the opened connection with ARE for SSE
 let _eventSourceMap = new Map();
 
@@ -49,7 +53,21 @@ export var PortDatatype = {
 
 //set the base uri (usually where ARE runs at)
 export function setBaseURI(uri) {
-  axiosInstance = axios.create({ baseURL: uri });
+  axiosInstance = axios.create({
+    baseURL: uri,
+    headers: { "content-type": "text/plain" }
+  });
+  _baseURI = uri;
+
+  axiosInstance.interceptors.request.use(config => {
+    console.log("Starting Request", config);
+    return config;
+  });
+
+  axiosInstance.interceptors.response.use(response => {
+    console.log("Response:", response);
+    return response;
+  });
 }
 
 //encodes PathParametes
@@ -73,12 +91,15 @@ export function replaceAll(text, oldString, newString) {
 
 export function downloadDeployedModel(successCallback, errorCallback) {
   axiosInstance
-    .get("runtime/model")
+    .get("runtime/model", {
+      responseType: "document",
+      headers: { Accept: "text/xml" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function uploadModel(successCallback, errorCallback, modelInXML = "", put = false) {
+export function uploadModel(successCallback, errorCallback, modelInXML = "", put = true) {
   if (modelInXML == "") return;
 
   axiosInstance
@@ -86,13 +107,13 @@ export function uploadModel(successCallback, errorCallback, modelInXML = "", put
       url: "runtime/model",
       method: put ? "put" : "post",
       data: modelInXML,
-      headers: { "Content-Type": "text/xml" }
+      headers: { "content-type": "text/xml" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function autorun(successCallback, errorCallback, filepath = "", put = false) {
+export function autorun(successCallback, errorCallback, filepath = "", put = true) {
   if (filepath == "") return;
 
   axiosInstance
@@ -101,21 +122,21 @@ export function autorun(successCallback, errorCallback, filepath = "", put = fal
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function pauseModel(successCallback, errorCallback, put = false) {
+export function pauseModel(successCallback, errorCallback, put = true) {
   axiosInstance
     .request({ url: "runtime/model/state/pause", method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function startModel(successCallback, errorCallback, put = false) {
+export function startModel(successCallback, errorCallback, put = true) {
   axiosInstance
     .request({ url: "runtime/model/state/start", method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function stopModel(successCallback, errorCallback, put = false) {
+export function stopModel(successCallback, errorCallback, put = true) {
   axiosInstance
     .request({ url: "runtime/model/state/stop", method: put ? "put" : "post" })
     .then(axiosSuccessCallback(successCallback))
@@ -124,12 +145,25 @@ export function stopModel(successCallback, errorCallback, put = false) {
 
 export function getModelState(successCallback, errorCallback) {
   axiosInstance
-    .get("runtime/model/state")
+    .get("runtime/model/state", {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function deployModelFromFile(successCallback, errorCallback, filepath = "", put = false) {
+export function getModelName(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model/name", {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function deployModelFromFile(successCallback, errorCallback, filepath = "", put = true) {
   if (filepath == "") return;
 
   axiosInstance
@@ -140,7 +174,10 @@ export function deployModelFromFile(successCallback, errorCallback, filepath = "
 
 export function getRuntimeComponentIds(successCallback, errorCallback) {
   axiosInstance
-    .get("runtime/model/components/ids")
+    .get("runtime/model/components/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -149,24 +186,39 @@ export function getRuntimeComponentPropertyKeys(successCallback, errorCallback, 
   if (componentId == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId))
-    .then(axiosSuccessCallback(successCallback))
-    .catch(axiosErrorCallback(errorCallback));
-}
-
-export function getRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "", put = false) {
-  if (componentId == "" || componentKey == "") return;
-
-  axiosInstance
-    .request({
-      url: "runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey),
-      method: put ? "put" : "post"
+    .get("runtime/model/components/" + encodeParam(componentId), {
+      responseType: "json",
+      headers: { Accept: "application/json" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
-export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap = "", put = false) {
+export function getRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "") {
+  if (componentId == "" || componentKey == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey), {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function getRuntimeComponentPropertyDynamic(successCallback, errorCallback, componentId = "", propertyKey = "") {
+  if (componentId == "" || propertyKey == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(propertyKey) + "/dynamicproperty", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap = "", put = true) {
   if (propertyMap == "") return;
 
   axiosInstance
@@ -174,7 +226,7 @@ export function setRuntimeComponentProperties(successCallback, errorCallback, pr
       url: "runtime/model/components/properties",
       method: put ? "put" : "post",
       data: propertyMap,
-      headers: { "Content-Type": "application/json" }
+      headers: { "content-type": "application/json" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
@@ -185,7 +237,7 @@ export function setRuntimeComponentProperty(successCallback, errorCallback, comp
 
   axiosInstance
     .put("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey), componentValue, {
-      headers: { "Content-Type": "text/plain" }
+      headers: { "content-type": "text/plain" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
@@ -193,7 +245,10 @@ export function setRuntimeComponentProperty(successCallback, errorCallback, comp
 
 export function getEventChannelsIds(successCallback, errorCallback) {
   axiosInstance
-    .get("runtime/model/channels/event/ids")
+    .get("runtime/model/channels/event/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -202,7 +257,10 @@ export function getEventChannelSource(successCallback, errorCallback, channelId 
   if (channelId == "") return;
 
   axiosInstance
-    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/source")
+    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/source", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -211,7 +269,10 @@ export function getEventChannelTarget(successCallback, errorCallback, channelId 
   if (channelId == "") return;
 
   axiosInstance
-    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/target")
+    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/target", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -220,14 +281,20 @@ export function getComponentEventChannelsIds(successCallback, errorCallback, com
   if (componentId == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/event/ids")
+    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/event/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getDataChannelsIds(successCallback, errorCallback) {
   axiosInstance
-    .get("runtime/model/channels/data/ids")
+    .get("runtime/model/channels/data/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -236,7 +303,10 @@ export function getDataChannelSource(successCallback, errorCallback, channelId =
   if (channelId == "") return;
 
   axiosInstance
-    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source")
+    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -245,7 +315,10 @@ export function getDataChannelTarget(successCallback, errorCallback, channelId =
   if (channelId == "") return;
 
   axiosInstance
-    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source")
+    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -254,7 +327,10 @@ export function getComponentDataChannelsIds(successCallback, errorCallback, comp
   if (componentId == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/data/ids")
+    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/data/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -263,7 +339,10 @@ export function getComponentInputPortIds(successCallback, errorCallback, compone
   if (componentId == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/input/ids")
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/input/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -272,7 +351,10 @@ export function getComponentOutputPortIds(successCallback, errorCallback, compon
   if (componentId == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/output/ids")
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/output/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -281,7 +363,36 @@ export function getPortDatatype(successCallback, errorCallback, componentId = ""
   if (componentId == "" || portId == "") return;
 
   axiosInstance
-    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/datatype")
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/datatype", {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function sendDataToInputPort(successCallback, errorCallback, componentId = "", portId = "", value = "", put = true) {
+  if (componentId == "" || portId == "" || value == "") return;
+
+  axiosInstance
+    .request({
+      url: "runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/data",
+      method: put ? "put" : "post",
+      data: value,
+      headers: { "content-type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function triggerEvent(successCallback, errorCallback, componentId = "", eventPortId = "", put = true) {
+  if (componentId == "" || eventPortId == "") return;
+
+  axiosInstance
+    .request({
+      url: "runtime/model/components/" + encodeParam(componentId) + "/events/" + encodeParam(eventPortId),
+      method: put ? "put" : "post"
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -294,7 +405,10 @@ export function downloadModelFromFile(successCallback, errorCallback, filepath =
   if (filepath == "") return;
 
   axiosInstance
-    .get("storage/models/" + encodeParam(filepath))
+    .get("storage/models/" + encodeParam(filepath), {
+      responseType: "document",
+      headers: { Accept: "text/xml" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -304,7 +418,7 @@ export function storeModel(successCallback, errorCallback, filepath = "", modelI
 
   axiosInstance
     .post("storage/models/" + encodeParam(filepath), modelInXML, {
-      headers: { "Content-Type": "text/xml" }
+      headers: { "content-type": "text/plain" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
@@ -315,7 +429,7 @@ export function storeData(successCallback, errorCallback, filepath = "", data = 
 
   axiosInstance
     .post("storage/data/" + encodeParam(filepath), data, {
-      headers: { "Content-Type": "text/plain" }
+      headers: { "content-type": "text/plain" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
@@ -326,7 +440,7 @@ export function storeWebappData(successCallback, errorCallback, webappId = "", f
 
   axiosInstance
     .post("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath), data, {
-      headers: { "Content-Type": "text/plain" }
+      headers: { "content-type": "text/xml" }
     })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
@@ -336,7 +450,10 @@ export function getWebappData(successCallback, errorCallback, webappId = "", fil
   if (webappId == "" || filepath == "") return;
 
   axiosInstance
-    .get("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath))
+    .get("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath), {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -345,28 +462,40 @@ export function deleteModelFromFile(successCallback, errorCallback, filepath = "
   if (filepath == "") return;
 
   axiosInstance
-    .delete("storage/models/" + encodeParam(filepath))
+    .delete("storage/models/" + encodeParam(filepath), {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
 export function listStoredModels(successCallback, errorCallback) {
   axiosInstance
-    .get("storage/models/names")
+    .get("storage/models/names", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getComponentDescriptorsAsXml(successCallback, errorCallback) {
   axiosInstance
-    .get("storage/components/descriptors/xml")
+    .get("storage/components/descriptors/xml", {
+      responseType: "document",
+      headers: { Accept: "text/xml" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getComponentDescriptorsAsJSON(successCallback, errorCallback) {
   axiosInstance
-    .get("storage/components/descriptors/json")
+    .get("storage/components/descriptors/json", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -377,7 +506,10 @@ export function getComponentDescriptorsAsJSON(successCallback, errorCallback) {
 
 export function getRestFunctions(successCallback, errorCallback) {
   axiosInstance
-    .get("restfunctions")
+    .get("restfunctions", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
     .then(axiosSuccessCallback(successCallback))
     .catch(axiosErrorCallback(errorCallback));
 }
@@ -440,7 +572,8 @@ export function subscribe(successCallback, errorCallback, eventType, channelId) 
 
   // Error handler
   eventSource.onerror = function(e) {
-    switch (e.target.readyState) {
+    var state = e && e.target ? e.target.readyState : null;
+    switch (state) {
       case EventSource.CONNECTING:
         console.log(400, "reconnecting");
         errorCallback(400, "reconnecting");
