@@ -58,16 +58,6 @@ export function setBaseURI(uri) {
     headers: { "content-type": "text/plain" }
   });
   _baseURI = uri;
-
-  axiosInstance.interceptors.request.use(config => {
-    console.log("Starting Request", config);
-    return config;
-  });
-
-  axiosInstance.interceptors.response.use(response => {
-    console.log("Response:", response);
-    return response;
-  });
 }
 
 //encodes PathParametes
