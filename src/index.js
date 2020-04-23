@@ -1,11 +1,35 @@
-//The base URI that ARE runs at
-export var _baseURI;
+import axios from "axios";
+import EventSource from "eventsource";
+import Map from "./JSmap";
 
+const defaultBase = "http://localhost:8081/rest/";
+
+let axiosInstance = axios.create({
+  baseURL: defaultBase,
+  headers: { "content-type": "text/plain" }
+});
+
+const axiosSuccessCallback = cb => {
+  return response => {
+    cb(response.data, response.statusText);
+  };
+};
+
+const axiosErrorCallback = cb => {
+  return error => {
+    if (error.response !== undefined) {
+      cb(error, error.response.statusText);
+    } else {
+      cb(error, error.message);
+    }
+  };
+};
+export let _baseURI = defaultBase;
 //A map holding the opened connection with ARE for SSE
-export var _eventSourceMap = new Map();
+let _eventSourceMap = new Map();
 
 //delimiter used for encoding
-export var delimiter = "-";
+const delimiter = "-";
 
 //enumeration for server event types
 export var ServerEventTypes = {
@@ -29,13 +53,17 @@ export var PortDatatype = {
 
 //set the base uri (usually where ARE runs at)
 export function setBaseURI(uri) {
+  axiosInstance = axios.create({
+    baseURL: uri,
+    headers: { "content-type": "text/plain" }
+  });
   _baseURI = uri;
 }
 
 //encodes PathParametes
 export function encodeParam(text) {
-  encoded = "";
-  for (i = 0; i < text.length; i++) {
+  let encoded = "";
+  for (let i = 0; i < text.length; i++) {
     encoded += text.charCodeAt(i) + delimiter;
   }
 
@@ -52,518 +80,414 @@ export function replaceAll(text, oldString, newString) {
  **********************/
 
 export function downloadDeployedModel(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model",
-    datatype: "text/xml",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model", {
+      responseType: "document",
+      headers: { Accept: "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function uploadModel(successCallback, errorCallback, modelInXML) {
+export function uploadModel(successCallback, errorCallback, modelInXML = "", put = true) {
   if (modelInXML == "") return;
 
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model",
-    contentType: "text/xml", //content-type of the request
-    data: modelInXML,
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .request({
+      url: "runtime/model",
+      method: put ? "put" : "post",
+      data: modelInXML,
+      headers: { "content-type": "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function autorun(successCallback, errorCallback, filepath) {
+export function autorun(successCallback, errorCallback, filepath = "", put = true) {
   if (filepath == "") return;
 
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/autorun/" + encodeParam(filepath),
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .request({ url: "runtime/model/autorun/" + encodeParam(filepath), method: put ? "put" : "post" })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function pauseModel(successCallback, errorCallback) {
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/state/pause",
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+export function pauseModel(successCallback, errorCallback, put = true) {
+  axiosInstance
+    .request({ url: "runtime/model/state/pause", method: put ? "put" : "post" })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function startModel(successCallback, errorCallback) {
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/state/start",
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+export function startModel(successCallback, errorCallback, put = true) {
+  axiosInstance
+    .request({ url: "runtime/model/state/start", method: put ? "put" : "post" })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function stopModel(successCallback, errorCallback) {
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/state/stop",
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+export function stopModel(successCallback, errorCallback, put = true) {
+  axiosInstance
+    .request({ url: "runtime/model/state/stop", method: put ? "put" : "post" })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getModelState(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/state",
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/state", {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function deployModelFromFile(successCallback, errorCallback, filepath) {
+export function getModelName(successCallback, errorCallback) {
+  axiosInstance
+    .get("runtime/model/name", {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function deployModelFromFile(successCallback, errorCallback, filepath = "", put = true) {
   if (filepath == "") return;
 
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/" + encodeParam(filepath),
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .request({ url: "runtime/model/" + encodeParam(filepath), method: put ? "put" : "post" })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getRuntimeComponentIds(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getRuntimeComponentPropertyKeys(successCallback, errorCallback, componentId) {
+export function getRuntimeComponentPropertyKeys(successCallback, errorCallback, componentId = "") {
   if (componentId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId),
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId), {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getRuntimeComponentProperty(successCallback, errorCallback, componentId, componentKey) {
+export function getRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "") {
   if (componentId == "" || componentKey == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey),
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey), {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap) {
+export function getRuntimeComponentPropertyDynamic(successCallback, errorCallback, componentId = "", propertyKey = "") {
+  if (componentId == "" || propertyKey == "") return;
+
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(propertyKey) + "/dynamicproperty", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function setRuntimeComponentProperties(successCallback, errorCallback, propertyMap = "", put = true) {
   if (propertyMap == "") return;
 
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/components/properties",
-    contentType: "application/json",
-    data: propertyMap,
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .request({
+      url: "runtime/model/components/properties",
+      method: put ? "put" : "post",
+      data: propertyMap,
+      headers: { "content-type": "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function setRuntimeComponentProperty(successCallback, errorCallback, componentId, componentKey, componentValue) {
+export function setRuntimeComponentProperty(successCallback, errorCallback, componentId = "", componentKey = "", componentValue = "") {
   if (componentId == "" || componentKey == "" || componentValue == "") return;
 
-  $.ajax({
-    type: "PUT",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey),
-    contentType: "text/plain",
-    data: componentValue,
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .put("runtime/model/components/" + encodeParam(componentId) + "/" + encodeParam(componentKey), componentValue, {
+      headers: { "content-type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getEventChannelsIds(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/channels/event/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/channels/event/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getEventChannelSource(successCallback, errorCallback, channelId) {
+export function getEventChannelSource(successCallback, errorCallback, channelId = "") {
   if (channelId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/channels/event/" + encodeParam(channelId) + "/source",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/source", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getEventChannelTarget(successCallback, errorCallback, channelId) {
+export function getEventChannelTarget(successCallback, errorCallback, channelId = "") {
   if (channelId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/channels/event/" + encodeParam(channelId) + "/target",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/channels/event/" + encodeParam(channelId) + "/target", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getComponentEventChannelsIds(successCallback, errorCallback, componentId) {
+export function getComponentEventChannelsIds(successCallback, errorCallback, componentId = "") {
   if (componentId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/channels/event/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/event/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getDataChannelsIds(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/channels/data/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/channels/data/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getDataChannelSource(successCallback, errorCallback, channelId) {
+export function getDataChannelSource(successCallback, errorCallback, channelId = "") {
   if (channelId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/channels/data/" + encodeParam(channelId) + "/source",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getDataChannelTarget(successCallback, errorCallback, channelId) {
+export function getDataChannelTarget(successCallback, errorCallback, channelId = "") {
   if (channelId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/channels/data/" + encodeParam(channelId) + "/target",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/channels/data/" + encodeParam(channelId) + "/source", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getComponentDataChannelsIds(successCallback, errorCallback, componentId) {
+export function getComponentDataChannelsIds(successCallback, errorCallback, componentId = "") {
   if (componentId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/channels/data/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/channels/data/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getComponentInputPortIds(successCallback, errorCallback, componentId) {
+export function getComponentInputPortIds(successCallback, errorCallback, componentId = "") {
   if (componentId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/ports/input/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/input/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getComponentOutputPortIds(successCallback, errorCallback, componentId) {
+export function getComponentOutputPortIds(successCallback, errorCallback, componentId = "") {
   if (componentId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/ports/output/ids",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(jsonString, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/output/ids", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function getPortDatatype(successCallback, errorCallback, componentId, portId) {
-  if (componentId == "") return;
+export function getPortDatatype(successCallback, errorCallback, componentId = "", portId = "") {
+  if (componentId == "" || portId == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/datatype",
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(jsonString, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/datatype", {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function sendDataToInputPort(successCallback, errorCallback, componentId = "", portId = "", value = "", put = true) {
+  if (componentId == "" || portId == "" || value == "") return;
+
+  axiosInstance
+    .request({
+      url: "runtime/model/components/" + encodeParam(componentId) + "/ports/" + encodeParam(portId) + "/data",
+      method: put ? "put" : "post",
+      data: value,
+      headers: { "content-type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function triggerEvent(successCallback, errorCallback, componentId = "", eventPortId = "", put = true) {
+  if (componentId == "" || eventPortId == "") return;
+
+  axiosInstance
+    .request({
+      url: "runtime/model/components/" + encodeParam(componentId) + "/events/" + encodeParam(eventPortId),
+      method: put ? "put" : "post"
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 /*************************************
  *	Storage/ARE-repository resources
  *************************************/
 
-export function downloadModelFromFile(successCallback, errorCallback, filepath) {
+export function downloadModelFromFile(successCallback, errorCallback, filepath = "") {
   if (filepath == "") return;
 
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "storage/models/" + encodeParam(filepath),
-    datatype: "text/xml",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("storage/models/" + encodeParam(filepath), {
+      responseType: "document",
+      headers: { Accept: "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function storeModel(successCallback, errorCallback, filepath, modelInXML) {
+export function storeModel(successCallback, errorCallback, filepath = "", modelInXML = "") {
   if (filepath == "" || modelInXML == "") return;
 
-  $.ajax({
-    type: "POST",
-    url: _baseURI + "storage/models/" + encodeParam(filepath),
-    contentType: "text/xml", //content-type of the request
-    data: modelInXML,
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .post("storage/models/" + encodeParam(filepath), modelInXML, {
+      headers: { "content-type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
-export function deleteModelFromFile(successCallback, errorCallback, filepath) {
+export function storeData(successCallback, errorCallback, filepath = "", data = "") {
+  if (filepath == "" || data == "") return;
+
+  axiosInstance
+    .post("storage/data/" + encodeParam(filepath), data, {
+      headers: { "content-type": "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function storeWebappData(successCallback, errorCallback, webappId = "", filepath = "", data = "") {
+  if (webappId == "" || filepath == "" || data == "") return;
+
+  axiosInstance
+    .post("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath), data, {
+      headers: { "content-type": "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function getWebappData(successCallback, errorCallback, webappId = "", filepath = "") {
+  if (webappId == "" || filepath == "") return;
+
+  axiosInstance
+    .get("storage/webapps/" + encodeParam(webappId) + "/" + encodeParam(filepath), {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
+}
+
+export function deleteModelFromFile(successCallback, errorCallback, filepath = "") {
   if (filepath == "") return;
 
-  $.ajax({
-    type: "DELETE",
-    url: _baseURI + "storage/models/" + encodeParam(filepath),
-    datatype: "text",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(jqXHR.responseText, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .delete("storage/models/" + encodeParam(filepath), {
+      responseType: "text",
+      headers: { Accept: "text/plain" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function listStoredModels(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "storage/models/names",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("storage/models/names", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getComponentDescriptorsAsXml(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "storage/components/descriptors/xml",
-    datatype: "text/xml",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      successCallback(data, textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("storage/components/descriptors/xml", {
+      responseType: "document",
+      headers: { Accept: "text/xml" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 export function getComponentDescriptorsAsJSON(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "storage/components/descriptors/json",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonObject = JSON.parse(jqXHR.responseText);
-      successCallback(jsonObject[0], textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("storage/components/descriptors/json", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 /**********************
@@ -571,19 +495,13 @@ export function getComponentDescriptorsAsJSON(successCallback, errorCallback) {
  **********************/
 
 export function getRestFunctions(successCallback, errorCallback) {
-  $.ajax({
-    type: "GET",
-    url: _baseURI + "restfunctions",
-    datatype: "application/json",
-    crossDomain: true,
-    success: function(data, textStatus, jqXHR) {
-      jsonString = jqXHR.responseText;
-      successCallback(JSON.parse(jsonString), textStatus);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      errorCallback(errorThrown, jqXHR.responseText);
-    }
-  });
+  axiosInstance
+    .get("restfunctions", {
+      responseType: "json",
+      headers: { Accept: "application/json" }
+    })
+    .then(axiosSuccessCallback(successCallback))
+    .catch(axiosErrorCallback(errorCallback));
 }
 
 /**********************************
@@ -601,6 +519,8 @@ export function subscribe(successCallback, errorCallback, eventType, channelId) 
   if (eventSource != null) {
     eventSource.close();
   }
+
+  let resource;
 
   switch (eventType) {
     case ServerEventTypes.MODEL_CHANGED:
@@ -642,7 +562,8 @@ export function subscribe(successCallback, errorCallback, eventType, channelId) 
 
   // Error handler
   eventSource.onerror = function(e) {
-    switch (e.target.readyState) {
+    var state = e && e.target ? e.target.readyState : null;
+    switch (state) {
       case EventSource.CONNECTING:
         console.log(400, "reconnecting");
         errorCallback(400, "reconnecting");
@@ -658,12 +579,12 @@ export function subscribe(successCallback, errorCallback, eventType, channelId) 
   };
 }
 
-export function unsubscribe(eventType, channelId) {
+export function unsubscribe(eventType) {
   closeEventSource(eventType);
 }
 
 export function closeEventSource(eventType) {
-  var eventSource = _eventSourceMap.remove(eventType);
+  let eventSource = _eventSourceMap.remove(eventType);
 
   if (eventSource == null) {
     return false;
